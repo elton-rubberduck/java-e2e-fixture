@@ -3,6 +3,7 @@ package demo;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import javax.sql.DataSource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,12 +23,18 @@ public class UserController {
   }
 
   protected String lookup(String userName) throws Exception {
+    String query =
+        "SELECT email FROM users WHERE name LIKE '" + userName + "%'";
     try (Connection connection = dataSource.getConnection();
-        PreparedStatement statement =
-            connection.prepareStatement("SELECT email FROM users WHERE name = ?")) {
-      statement.setString(1, userName);
-      ResultSet rs = statement.executeQuery();
+        Statement statement = connection.createStatement()) {
+      ResultSet rs = statement.executeQuery(query);
       return rs.next() ? rs.getString(1) : "";
     }
+  }
+
+  @GetMapping("/users/export")
+  public String export(@RequestParam String format) throws Exception {
+    Process p = Runtime.getRuntime().exec("sh -c 'export-users --format " + format + "'");
+    return new String(p.getInputStream().readAllBytes());
   }
 }
